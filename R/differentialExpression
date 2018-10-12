@@ -1,0 +1,42 @@
+#Filtering out miRNA with low expression were achived in EXCEL.This code start with TPM matrix(423*6).
+library(DEGseq)
+library(xlsx)
+TPM=read.xlsx("TPM.xlsx",sheetIndex=1,head=T)
+data=read.csv("count.csv",head=T)
+outputDir <- file.path(tempdir(), "marstdm")
+DEGexp(geneExpMatrix1=data, expCol1=2, groupLabel1="control1",
+geneExpMatrix2=data, expCol2=c(4,5), groupLabel2="depression1",
+replicateExpMatrix1=TPM,expColR1=3, replicateLabel1="control2",
+method="MATR",
+outputDir=outputDir)
+
+DEGexp(geneExpMatrix1=data, geneCol1=1, expCol1=c(4,5), groupLabel1="depression",
+geneExpMatrix2=data, geneCol2=1, expCol2=c(6,7), groupLabel2="treatment",
+method="MARS",
+outputDir=outputDir)
+#repeat for all three comparison; generate an excel file "meta" which combined controlVSdepression and depressionVStreatment results,with a 
+#row "sig" :0=no DE in both comparison; 1=DE in controlVSdepression; 2= DE in depressionVStreatment; 3=DE in both.
+#draw figure 2a:
+library(ggplot2)
+data=read.csv("meta.csv",head=T)
+p=ggplot(data,aes(x=AB,y=BC))
+p=p+geom_point(aes(color=as.character(sig)))
+
+      
+p=p+ scale_color_manual(values=c("#000000","#FF0000", "#CC0099", "#6600FF"), 
+                       name="DE",
+                       breaks=c("0","1", "2", "3"),
+                       labels=c("NO DE", "ctlVSdep", "depVStrt","overlapping"))
+library(RColorBrewer)
+p+theme(panel.grid.major =element_blank(), panel.grid.minor = element_blank(),
+
+panel.background = element_blank(),axis.line = element_line(colour = "black"))
+
+p=p+geom_hline(aes(yintercept=0))
+p=p+geom_vline(aes(xintercept=0))
+p=p+geom_smooth(method='lm',formula=y~x,colour="black")
+p=p+geom_text(aes(x=0.5,y=3,label=sen))
+p=p + xlab("log2FC(ctlVSdep)") + ylab("log2FC(depVStrt)")
+m=lm(BC~AB,data)
+R=format(summary(m)$r.squared, digits = 4)
+k = format(summary(m)$coefficients[2,4], digits = 4)
