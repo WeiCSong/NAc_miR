@@ -1,0 +1,15 @@
+#Pathway analysis were achieved in DAVID. "pathway.xlsx" was generated from downloaded data from DAVID.
+library(ggplot2)
+library(stringr)
+library(xlsx)
+data=read.xlsx("pathway.xlsx",sheetIndex=1,head=T)
+
+data$term = str_wrap(data$term, width = 28)
+
+p=ggplot(data,aes(x=FoldEnrichment,y=term))
+p=p+geom_point(aes(size=Count,color=-1*log10(Benjamini)))
+p=p+scale_color_gradient(low="#0000FF",high="#FF0000")
+p=p+facet_wrap(~Category,scales="free",nrow=2)
+p=p + theme(panel.grid.major =element_blank(), panel.grid.minor = element_blank(),
+
+panel.background = element_blank(),axis.line = element_line(colour = "black"))
