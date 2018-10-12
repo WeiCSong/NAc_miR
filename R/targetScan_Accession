@@ -1,0 +1,57 @@
+#This code aimed to get predicted targets of miRNA from targetScan by RCurl.
+library(RCurl)
+library(XML)
+library(xlsx)
+myHttpheader <- c(
+
+"User-Agent"="Mozilla/5.0 (Windows; U; Windows NT 5.1; zh-CN; rv:1.9.1.6) ",
+
+"Accept"="text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+
+"Accept-Language"="en-us",
+
+"Connection"="keep-alive",
+
+"Accept-Charset"="GB2312,utf-8;q=0.7,*;q=0.7"
+
+)
+
+#green=read.csv("green.csv",head=TRUE)
+#green=as.character(green[,1])
+#same for other DE miRNA lists/WGCNA modules
+for(i in 1:length(green)){
+url=paste("http://www.targetscan.org/cgi-bin/targetscan/vert_71/targetscan.cgi?species=Rat&gid=&mir_sc=&mir_c=&mir_nc=&mir_vnc=&mirg=",green[i],sep="")
+list=getHTMLLinks(url)
+num=grep(pattern="&allTxs=&text=1",list)
+if(length(num)!=0){
+url1=paste("http://www.targetscan.org/cgi-bin/targetscan/vert_71/",list[num],sep="")
+url2=getHTMLLinks(url1)[2]
+url2=paste("http://www.targetscan.org",url2,sep="")
+tmp <- getBinaryURL(url2)
+note <- file(paste(green[i],".xls",sep=""), open = "wb")
+writeBin(tmp, note)
+close(note)
+}else{}
+}
+###########################################################################################
+temp = list.files(pattern="*.xls")
+final=c()
+for (i in 1:length(temp))
+{
+data<-read.xlsx(temp[i],sheetIndex=1,header = T)
+gene=data$"Ortholog.of.target.gene"
+score=data$"Cumulative.weighted.context...score"
+if(is.numeric(score)){score=score
+}else{score=as.numeric(levels(score)[score])
+}
+
+score[is.na(score)] <- 0
+name=unlist(strsplit(temp[i],".x"))[1]
+dat=data.frame(gene,score)
+mir=rep(name,nrow(dat))
+dat=data.frame(mir,dat)
+c=dat[which(score<=0),]
+final=rbind(final,c)
+}
+write.csv(final,"net.csv")
+#Context-score filtration was achieved in EXCEL as described in paper.
